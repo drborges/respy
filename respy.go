@@ -2,9 +2,10 @@ package respy
 
 import (
 	"fmt"
+	"net/url"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
+	"io/ioutil"
 )
 
 var (
@@ -34,15 +35,22 @@ func (r Replies) Body(json string) Replies {
 	return r
 }
 
-func (r Replies) Reply() (*httptest.Server, *http.Client) {
+func (r Replies) Reply() (*Server, *http.Client) {
 	return reply(r.code, r.body, r.headers)
 }
 
 // Code reused from http://keighl.com/post/mocking-http-responses-in-golang
-func reply(code int, body string, headers http.Header) (*httptest.Server, *http.Client) {
+func reply(code int, body string, headers http.Header) (*Server, *http.Client) {
+	wrapper := &Server{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for key, value := range headers {
 			w.Header().Add(key, value[0])
+		}
+
+		reqBody, _ := ioutil.ReadAll(r.Body)
+		wrapper.ReceivedRequest = requestInfo{
+			Request: r,
+			Body: string(reqBody),
 		}
 		w.WriteHeader(code)
 		fmt.Fprint(w, body)
@@ -56,5 +64,6 @@ func reply(code int, body string, headers http.Header) (*httptest.Server, *http.
 
 	client := &http.Client{Transport: transport}
 
-	return server, client
+	wrapper.Server = server
+	return wrapper, client
 }

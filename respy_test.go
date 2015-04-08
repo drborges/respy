@@ -4,6 +4,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
+	"strings"
 	"testing"
 )
 
@@ -61,4 +62,15 @@ func TestStatusCreatedWithJSONBodyAndLocationHeader(t *testing.T) {
 	assert.Equal(t, 201, resp.StatusCode)
 	assert.Equal(t, "http://localhost/resource/1", resp.Header.Get("Location"))
 	assert.Equal(t, expectedResponseBody, responseBody)
+}
+
+func TestServerStoresRequestInformation(t *testing.T) {
+	server, client := StatusOK.Reply()
+	defer server.Close()
+
+	json := `{"user": "drborges"}`
+	client.Post(server.URL, "application/json", strings.NewReader(json))
+
+	assert.Equal(t, "application/json", server.ReceivedRequest.Header.Get("Content-type"))
+	assert.Equal(t, json, server.ReceivedRequest.Body)
 }
