@@ -2,7 +2,15 @@
 
 respy provides a simple API for building http response stubs for your tests.
 
+# Getting respy
+
+```bash
+$ go get github.com/drborges/respy
+```
+
 # Usage
+
+Stubbing response `headers` and `body`:
 
 ```go
 import "github.com/drborges/respy"
@@ -25,6 +33,23 @@ func TestStatusCreatedWithJSONBodyAndLocationHeader(t *testing.T) {
 	assert.Equal(t, 201, resp.StatusCode)
 	assert.Equal(t, "http://localhost/resource/1", resp.Header.Get("Location"))
 	assert.Equal(t, expectedResponseBody, responseBody)
+}
+```
+
+Checking received request data on the `Server`:
+ 
+```go
+import "github.com/drborges/respy"
+
+func TestServerStoresRequestInformation(t *testing.T) {
+	server, client := respy.StatusOK.Reply()
+	defer server.Close()
+
+	json := `{"user": "drborges"}`
+	client.Post(server.URL, "application/json", strings.NewReader(json))
+
+	assert.Equal(t, "application/json", server.ReceivedRequest.Header.Get("Content-type"))
+	assert.Equal(t, json, server.ReceivedRequest.Body)
 }
 ```
 
